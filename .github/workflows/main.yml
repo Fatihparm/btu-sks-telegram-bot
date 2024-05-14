@@ -1,0 +1,12 @@
+name: btu-sks
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on:
+      - self-hosted
+      - label1
+      
+  
