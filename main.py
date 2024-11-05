@@ -66,6 +66,8 @@ def restartEveryDay(context: CallbackContext):
     print("Yeni Sks duyurusu yok")
   if len(newAnnDict) == 0:
     print("Yeni duyuru yok")
+  for lecture in lectures:
+    models.delete_older_announcements(lecture) #eski duyuruları siler
   models.remove_duplicate_announcements() #aynı duyuruları (varsa) siler
   print("Yemekhane menüsü güncellendi")
 
