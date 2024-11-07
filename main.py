@@ -10,6 +10,7 @@ import os
 from datetime import time
 import requests
 import dotenv
+import json
 dotenv.load_dotenv()
 
 try:
@@ -27,13 +28,10 @@ logging.basicConfig(
   format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
   level=logging.INFO
 )
+with open("lectureUrl.json", "r", encoding="utf-8") as file:
+    data = json.load(file)
 
-lectures = [
-"bilgisayar","biyomuh","cevre","elektrik","endustri",
-"fizik","gida","insaat","kimya","kimyamuh","makine",
-"matematik","mekatronik","metalurji","polimer",
-"denizcilik","utl","ui","isletme","sosyoloji",
-"imtb","psikoloji","ormanendustri","orman","peyzaj"]
+lectures = [key for key in data.keys() if key != "sks"]
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
   text1 = "Bursa Teknik Üniversitesi Yemekhane Telegram botuna hoşgeldiniz. /help yazarak komutlara erişebilirsiniz.!"
@@ -67,7 +65,7 @@ def restartEveryDay(context: CallbackContext):
   if len(newAnnDict) == 0:
     print("Yeni duyuru yok")
   for lecture in lectures:
-    models.delete_older_announcements(lecture) #eski duyuruları siler
+    models.delete_old_announcements(lecture) #eski duyuruları siler
   models.remove_duplicate_announcements() #aynı duyuruları (varsa) siler
   print("Yemekhane menüsü güncellendi")
 
@@ -209,6 +207,7 @@ def sendAnnouncement(context: CallbackContext):
         text=f"DUYURU \n{content.title.upper()}\n{content.publish_date}\n\nDaha fazla bilgi için:{content.link}"
         url = f"https://api.telegram.org/bot{Token}/sendMessage?chat_id={telegramId}&text={text}"
         requests.get(url).json()
+      newAnnDict.clear()
     except:
       print(f"{telegramId} abone olmus ama yetki vermemis")
       eachPerson += 1

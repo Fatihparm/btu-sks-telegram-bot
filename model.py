@@ -108,7 +108,7 @@ class Models:
         ''', (id,))
     self.db.commit()
 
-  def delete_older_announcements(self, lecture):
+  def delete_old_announcements(self, lecture):
     self.cursor.execute("SELECT COUNT(*) FROM announcements WHERE lecture = ?", (lecture,))
     total_count = self.cursor.fetchone()[0]
     if total_count > 12:
