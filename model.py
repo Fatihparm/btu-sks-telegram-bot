@@ -10,7 +10,7 @@ class Models:
     
     self.cursor = self.db.cursor()
     self.create_table()
-self.db = sqlite3.connect('./data/database.db', check_same_thread=False)
+    self.db = sqlite3.connect('./data/database.db', check_same_thread=False)
   def create_table(self):
     """Creates table if not exists"""
     self.cursor.execute('''
