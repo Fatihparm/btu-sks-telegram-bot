@@ -4,7 +4,7 @@ services:
   telegram-bot:
     build: .
     volumes:
-      - telegram-bot-db:/app/database.db  # Veritabanı dosyasını volume olarak bağlama
+      - telegram-bot-db:/app/data  # Veritabanı dosyasını volume olarak bağlama
     ports:
       - "8080:8080"
     environment:
