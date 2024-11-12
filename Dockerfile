@@ -8,6 +8,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+VOLUME ["/app/database.db"]
+
 EXPOSE 8080
 
 COPY .env .env

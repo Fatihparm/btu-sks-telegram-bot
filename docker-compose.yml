@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  telegram-bot:
+    build: .
+    volumes:
+      - telegram-bot-db:/app/database.db  # Veritabanı dosyasını volume olarak bağlama
+    ports:
+      - "8080:8080"
+    environment:
+      - ENV_FILE=.env
+
+volumes:
+  telegram-bot-db:
+    driver: local  # Local volume kullanıyoruz
