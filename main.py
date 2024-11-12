@@ -25,9 +25,11 @@ models = Models()
 models.create_table()
 
 logging.basicConfig(
-  format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-  level=logging.INFO
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logger = logging.getLogger(__name__)
+
 with open("lectureUrl.json", "r", encoding="utf-8") as file:
     data = json.load(file)
 
