@@ -40,7 +40,7 @@ class ScrapeAnnouncement:
     urls = []
     counter = 0 
     for ann in old_announcements:
-      urls.append(ann[3]) #başlıkları listeye ekliyoruz. Yeni duyuruları kontrol ederken bu listeyi kullanacağız.
+      urls.append(ann[3]) #linkleri listeye ekliyoruz. Yeni duyuruları kontrol ederken bu listeyi kullanacağız.
     for new_ann in new_announcements:
       if new_ann.link not in urls:
         model.add_announcement(new_ann.title, lecture, new_ann.link, new_ann.publish_date) #yeni duyuruyu veritabanına ekliyoruz.

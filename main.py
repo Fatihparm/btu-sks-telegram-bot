@@ -5,9 +5,8 @@ from model import Models
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, CallbackContext
 from telegram import Update
 import logging
-import datetime
 import os
-from datetime import time
+from datetime import time, datetime
 import requests
 import dotenv
 import json
@@ -25,10 +24,21 @@ models = Models()
 models.create_table()
 
 logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+    format="%(asctime)s [%(levelname)s] %(message)s", 
+    datefmt="%Y-%m-%d %H:%M:%S", 
+    level=logging.INFO  
 )
+
 logging.getLogger("httpx").setLevel(logging.WARNING)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("TelegramBot") 
+
+def log_command(func):
+  async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    logger.info(f"{func.__name__} komutu çağrıldı. Kullanıcı: {user.first_name} ({user.id})")
+    await func(update, context)
+    logger.info(f"{func.__name__} komutu tamamlandı. Kullanıcı: {user.first_name} ({user.id})")
+  return wrapper
 
 with open("lectureUrl.json", "r", encoding="utf-8") as file:
     data = json.load(file)
@@ -36,10 +46,12 @@ with open("lectureUrl.json", "r", encoding="utf-8") as file:
 lectures = [key for key in data.keys() if key != "sks"]
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  user = update.message.from_user
   text1 = "Bursa Teknik Üniversitesi Yemekhane Telegram botuna hoşgeldiniz. /help yazarak komutlara erişebilirsiniz.!"
   await context.bot.send_message(chat_id=update.effective_chat.id, text = text1)
   info = update.message
   messages_to_add(info)
+  logger.info(f"/start komutu tamamlandı. Kullanıcı: {user.first_name} ({user.id})")
 
 async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user = update.message.from_user
@@ -50,15 +62,24 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
   await context.bot.send_message(chat_id=update.effective_chat.id, text = reply_text)
   info = update.message
   messages_to_add(info)
+  logger.info(f"/help komutu tamamlandı. Kullanıcı: {user.first_name} ({user.id})")
 
 
 def restartEveryDay(context: CallbackContext):
   global menuList, newAnnDict , sksAnnList
   sksAnnList = []
   print("RESTARTED")
-  scrape.ScrapeMenu().getPdf()
-  menuList = getmenu.Menu().getFormattedMenu() #yemekhane menüsünü günceller
-  newAnnDict = getannouncement.ScrapeAnnouncement().getNewAnnouncements() #yeni eklenen duyurularını alır
+  try:
+    scrape.ScrapeMenu().getPdf()
+    menuList = getmenu.Menu().getFormattedMenu()  # Yemekhane menüsünü günceller
+  except Exception as e:
+    print(f"PDF güncellenirken bir hata oluştu: {e}")
+    menuList = []  # Varsayılan bir boş liste döndürebilirsiniz
+  try:
+    newAnnDict = getannouncement.ScrapeAnnouncement().getNewAnnouncements() #yeni eklenen duyurularını alır
+  except Exception as e:
+    print(f"Duyurular güncellenirken bir hata oluştu: {e}")
+    newAnnDict = {}
   try:
     for ann in newAnnDict["sks"]:
       sksAnnList.append(ann) #sks duyurularını ayrıca kaydediyoruz
@@ -73,9 +94,10 @@ def restartEveryDay(context: CallbackContext):
 
 
 async def getMenu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  user = update.message.from_user
   try:
     if context.args == []:
-      userInput = datetime.datetime.now().day
+      userInput = datetime.now().day
     else:
       userInput = context.args[0]
     if (int(userInput) > 0):
@@ -88,6 +110,7 @@ async def getMenu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text = "Lütfen geçerli bir gün giriniz.")
   info = update.message
   messages_to_add(info)
+  logger.info(f"/menu komutu tamamlandı. Kullanıcı: {user.first_name} ({user.id})")
 
 
 async def abonelik(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -123,6 +146,7 @@ async def abonelik(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("Bir hata oluştu")
   info = update.message
   messages_to_add(info)
+  logger.info(f"/abonelik komutu tamamlandı. Kullanıcı: {user.first_name} ({user.id})")
 
 async def duyuruBas(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user = update.message.from_user
@@ -148,7 +172,11 @@ async def duyuruBas(update: Update, context: ContextTypes.DEFAULT_TYPE):
       if (int(userInput) > 0 and int(userInput)<13):
           content_list = models.fetch_announcement_by_count(user_lecture, userInput)
           for content in content_list:
-            text=f" DUYURU \n {content[4]} \n {content[2]} \n\n Daha fazla bilgi için: {content[3]}"
+            # Tarihi 'YYYY-MM-DD' formatından 'DD.MM.YYYY' formatına çevir
+            publish_date = content[4]  # 'publish_date' verisi 'YYYY-MM-DD' formatında
+            publish_date_obj = datetime.strptime(publish_date, '%Y-%m-%d')  # strptime doğru şekilde kullanıldı
+            formatted_date = publish_date_obj.strftime('%d.%m.%Y')
+            text=f"DUYURU \n{formatted_date}\n{content[2]}\n\nDaha fazla bilgi için: {content[3]}"
             url = f"https://api.telegram.org/bot{Token}/sendMessage?chat_id={telegramId}&text={text}"
             requests.get(url).json()
       else:
@@ -159,6 +187,7 @@ async def duyuruBas(update: Update, context: ContextTypes.DEFAULT_TYPE):
       requests.get(url).json()
     info = update.message
     messages_to_add(info)
+    logger.info(f"/duyuru komutu tamamlandı. Kullanıcı: {user.first_name} ({user.id})")
 
 async def abonelikiptal(update:Update, context:ContextTypes.DEFAULT_TYPE):
   user = update.message.from_user
@@ -177,6 +206,7 @@ async def abonelikiptal(update:Update, context:ContextTypes.DEFAULT_TYPE):
     requests.get(url).json()
   info = update.message
   messages_to_add(info)
+  logger.info(f"/abonelikiptal komutu tamamlandı. Kullanıcı: {user.first_name} ({user.id})")
 
 def sendSksAnnouncement(context: CallbackContext):
   kayitliKisiListesi = models.check_all()
@@ -206,7 +236,10 @@ def sendAnnouncement(context: CallbackContext):
         print("Yeni duyuru yok")
         break
       for content in newAnnDict[user_lecture]:
-        text=f"DUYURU \n{content.title.upper()}\n{content.publish_date}\n\nDaha fazla bilgi için:{content.link}"
+        publish_date = content.publish_date  # 'publish_date' verisi 'YYYY-MM-DD' formatında
+        publish_date_obj = datetime.strptime(publish_date, '%Y-%m-%d')  # strptime doğru şekilde kullanıldı
+        formatted_date = publish_date_obj.strftime('%d.%m.%Y')
+        text=f"DUYURU \n{formatted_date}\n{content.title.upper()}\n\nDaha fazla bilgi için:{content.link}"
         url = f"https://api.telegram.org/bot{Token}/sendMessage?chat_id={telegramId}&text={text}"
         requests.get(url).json()
       newAnnDict.clear()

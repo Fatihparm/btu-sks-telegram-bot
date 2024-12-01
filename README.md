@@ -1,5 +1,5 @@
 
-#BTU-SKS-telegram
+# BTU-SKS-telegram
 Bursa Teknik Üniversitesi öğrencileri için yemekhane menüsünü ve duyuruları takip etmeyi kolaylaştıran Telegram botudur. Bu bot, abonelik sistemi aracılığıyla günlük olarak otomatik mesajlar almanızı sağlar.
 
 ## Projenin Amacı :
