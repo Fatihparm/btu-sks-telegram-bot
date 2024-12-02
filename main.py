@@ -250,7 +250,7 @@ def sendAnnouncement(context: CallbackContext):
 
 def sendDaysMenu(context: CallbackContext):
   kayitliKisiListesi = models.check_all()
-  userInput = datetime.datetime.now().day
+  userInput = datetime.now().day
   daysMenu = menuList[int(userInput)-1]
   lines = daysMenu.split("\n")
   formattedDaysMenu = f"{lines[0]} - {lines[1]}\n" + "\n".join(lines[2:])
@@ -303,7 +303,7 @@ def main():
   app.add_handler(CommandHandler('abonelik',abonelik))
   app.add_handler(CommandHandler('abonelikiptal',abonelikiptal))
   app.add_handler(CommandHandler('duyuru',duyuruBas))
-  restartEveryDay(app)
+  #restartEveryDay(app)
   callbackRestartEveryday(app)
   callbackMenu(app)
   callbackAnnouncement(app)
