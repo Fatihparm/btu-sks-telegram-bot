@@ -10,18 +10,17 @@ from datetime import time, datetime
 import requests
 import dotenv
 import json
+
 dotenv.load_dotenv()
-
-try:
-  menuList = getmenu.Menu().getFormattedMenu()
-except:
-  scrape.ScrapeMenu().getPdf()
-  menuList = getmenu.Menu().getFormattedMenu()
-
 Token = os.getenv("TOKEN")
 
 models = Models()
 models.create_table()
+
+with open("lectureUrl.json", "r", encoding="utf-8") as file:
+    data = json.load(file)
+
+lectures = [key for key in data.keys() if key != "sks"]
 
 logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s", 
@@ -39,11 +38,6 @@ def log_command(func):
     await func(update, context)
     logger.info(f"{func.__name__} komutu tamamlandı. Kullanıcı: {user.first_name} ({user.id})")
   return wrapper
-
-with open("lectureUrl.json", "r", encoding="utf-8") as file:
-    data = json.load(file)
-
-lectures = [key for key in data.keys() if key != "sks"]
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user = update.message.from_user
@@ -66,17 +60,18 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def restartEveryDay(context: CallbackContext):
-  global menuList, newAnnDict , sksAnnList
+  global menuList, newAnnDict, sksAnnList
   sksAnnList = []
   print("RESTARTED")
   try:
     scrape.ScrapeMenu().getPdf()
     menuList = getmenu.Menu().getFormattedMenu()  # Yemekhane menüsünü günceller
+    print("Menü güncellendi")
   except Exception as e:
     print(f"PDF güncellenirken bir hata oluştu: {e}")
     menuList = []  # Varsayılan bir boş liste döndürebilirsiniz
   try:
-    newAnnDict = getannouncement.ScrapeAnnouncement().getNewAnnouncements() #yeni eklenen duyurularını alır
+    newAnnDict = getannouncement.ScrapeAnnouncement().getNewAnnouncements()
   except Exception as e:
     print(f"Duyurular güncellenirken bir hata oluştu: {e}")
     newAnnDict = {}
@@ -84,13 +79,12 @@ def restartEveryDay(context: CallbackContext):
     for ann in newAnnDict["sks"]:
       sksAnnList.append(ann) #sks duyurularını ayrıca kaydediyoruz
   except(KeyError):
-    print("Yeni Sks duyurusu yok")
+    print("Sks duyurusu yok")
   if len(newAnnDict) == 0:
     print("Yeni duyuru yok")
   for lecture in lectures:
     models.delete_old_announcements(lecture) #eski duyuruları siler
   models.remove_duplicate_announcements() #aynı duyuruları (varsa) siler
-  print("Yemekhane menüsü güncellendi")
 
 
 async def getMenu(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -224,7 +218,6 @@ def sendSksAnnouncement(context: CallbackContext):
       print(f"{telegramId} abone olmus ama yetki vermemis")
       eachPerson += 1
 
-
 def sendAnnouncement(context: CallbackContext):
   kayitliKisiListesi = models.check_all()
   for eachPerson in range(len(kayitliKisiListesi)):
@@ -246,7 +239,6 @@ def sendAnnouncement(context: CallbackContext):
     except:
       print(f"{telegramId} abone olmus ama yetki vermemis")
       eachPerson += 1
-
 
 def sendDaysMenu(context: CallbackContext):
   kayitliKisiListesi = models.check_all()
@@ -274,23 +266,25 @@ def messages_to_add(info):
 """BURADAN TÜM FONKSİYONLARIN ÇALIŞMA SAATLERİNİ AYARLAYABİLİRSİNİZ (hour değişkenini 3 saat geriden almalısınız)."""
 
 def callbackRestartEveryday(context: ContextTypes.DEFAULT_TYPE):
-  timer = time(hour=4, minute=0, second=0)
+  timer = time(hour=5, minute=30, second=0)
   context.job_queue.run_daily(restartEveryDay, timer, days=(0,1,2,3,4,5,6))
-  timer2 = time(hour=15, minute=0, second=0)
+  timer2 = time(hour=7, minute=50, second=0)
   context.job_queue.run_daily(restartEveryDay, timer2, days=(0,1,2,3,4,5,6))
+  timer3 = time(hour=16, minute=0, second=0)
+  context.job_queue.run_daily(restartEveryDay, timer3, days=(0,1,2,3,4,5,6))
 
 def callbackMenu(context: ContextTypes.DEFAULT_TYPE):
   timer = time(hour=6, minute=0, second=0)
   context.job_queue.run_daily(sendDaysMenu, timer, days=(0,1,2,3,4,5,6))
 
 def callbackAnnouncement(context: ContextTypes.DEFAULT_TYPE):
-  timer = time(hour=6, minute=0, second=0)
+  timer = time(hour=7, minute=0, second=0)
   context.job_queue.run_daily(sendAnnouncement, timer, days=(0,1,2,3,4,5,6))
   timer2 = time(hour=16, minute=0, second=0)
   context.job_queue.run_daily(restartEveryDay, timer2, days=(0,1,2,3,4,5,6))
 
 def callbackSksAnnouncement(context: ContextTypes.DEFAULT_TYPE):
-  timer = time(hour=6, minute=0, second=0)
+  timer = time(hour=7, minute=0, second=0)
   context.job_queue.run_daily(sendSksAnnouncement, timer, days=(0,1,2,3,4,5,6))
   timer2 = time(hour=16, minute=0, second=0)
   context.job_queue.run_daily(restartEveryDay, timer2, days=(0,1,2,3,4,5,6))
@@ -303,7 +297,7 @@ def main():
   app.add_handler(CommandHandler('abonelik',abonelik))
   app.add_handler(CommandHandler('abonelikiptal',abonelikiptal))
   app.add_handler(CommandHandler('duyuru',duyuruBas))
-  #restartEveryDay(app)
+  restartEveryDay(app)
   callbackRestartEveryday(app)
   callbackMenu(app)
   callbackAnnouncement(app)
