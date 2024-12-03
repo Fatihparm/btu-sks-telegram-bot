@@ -72,6 +72,11 @@ def restartEveryDay(context: CallbackContext):
     menuList = []  # Varsayılan bir boş liste döndürebilirsiniz
   try:
     newAnnDict = getannouncement.ScrapeAnnouncement().getNewAnnouncements()
+    print("-----------------------Yeni Duyurular----------------------------")
+    for key, announcements in newAnnDict.items():
+      print(f"Bölüm: {key}")
+      for announcement in announcements:
+        print(f"Başlık: {announcement.title}, Tarih: {announcement.publish_date}, Link: {announcement.link}")
   except Exception as e:
     print(f"Duyurular güncellenirken bir hata oluştu: {e}")
     newAnnDict = {}
@@ -223,21 +228,20 @@ def sendAnnouncement(context: CallbackContext):
   for eachPerson in range(len(kayitliKisiListesi)):
     telegramId = kayitliKisiListesi[eachPerson][0]
     user_lecture = kayitliKisiListesi[eachPerson][3]
-    print(user_lecture)
+    print("KULLANICI BÖLÜMÜ:" , user_lecture)
+    if user_lecture == None:
+      print("Kullanıcı bölümünü girmemiş")
+      break
+    if len(newAnnDict) == 0:
+      print("Yeni duyuru yok")
+      break
     try:
-      if len(newAnnDict) == 0:
-        print("Yeni duyuru yok")
-        break
       for content in newAnnDict[user_lecture]:
-        publish_date = content.publish_date  # 'publish_date' verisi 'YYYY-MM-DD' formatında
-        publish_date_obj = datetime.strptime(publish_date, '%Y-%m-%d')  # strptime doğru şekilde kullanıldı
-        formatted_date = publish_date_obj.strftime('%d.%m.%Y')
-        text=f"DUYURU \n{formatted_date}\n{content.title.upper()}\n\nDaha fazla bilgi için:{content.link}"
+        text=f"DUYURU \n{content.title.upper()}\n{content.publish_date}\n\nDaha fazla bilgi için:{content.link}"
         url = f"https://api.telegram.org/bot{Token}/sendMessage?chat_id={telegramId}&text={text}"
         requests.get(url).json()
-      newAnnDict.clear()
-    except:
-      print(f"{telegramId} abone olmus ama yetki vermemis")
+    except Exception as e:
+      print(f"{telegramId} kullanıcısında hata oluştu: {e}")
       eachPerson += 1
 
 def sendDaysMenu(context: CallbackContext):
