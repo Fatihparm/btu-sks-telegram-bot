@@ -2,7 +2,15 @@ from model import Models
 import requests
 from bs4 import BeautifulSoup
 import json
+import logging
 
+logging.basicConfig(
+    format="%(asctime)s [%(levelname)s] %(message)s", 
+    datefmt="%Y-%m-%d %H:%M:%S", 
+    level=logging.INFO  
+)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logger = logging.getLogger("announcement")
 model = Models()
 
 class ScrapeAnnouncement:
@@ -47,14 +55,14 @@ class ScrapeAnnouncement:
         counter += 1
         new_content.append(new_ann) #yeni duyuruyu listeye ekliyoruz.
     if counter != 0: 
-      print(f"{counter} {lecture.upper()} bölümü duyurusu veritabanına eklendi")
+      logger.info(f"{counter} {lecture.upper()} bölümü duyurusu veritabanına eklendi")
     if len(new_content) > 3: # 3'ten fazla duyuru varsa yeni duyuruları döndürmüyoruz. Botun spam yapmasını engellemek için.
       new_content.clear() 
     return new_content
   
   def getNewAnnouncements(self):
     """Tüm bölümlerin yeni duyurularını bir sözlükte toplar ve döndürür."""
-    print("Duyuru kontrolü yapılıyor...")
+    logger.info("Duyuru kontrolü yapılıyor...")
     new_announcement_dict = {}
     with open('lectureUrl.json') as file:
       lecture_url_dict = json.load(file)
@@ -63,5 +71,3 @@ class ScrapeAnnouncement:
       if new_announcements: #yeni duyuru varsa sözlüğe ekliyoruz.
         new_announcement_dict[lec] = new_announcements
     return new_announcement_dict
-
-

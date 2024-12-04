@@ -68,6 +68,7 @@ def restartEveryDay(context: CallbackContext):
   logger.info("RESTARTED")
   try:
     scrape.ScrapeMenu().getPdf()
+    logger.info("PDF güncellendi")
     menuList = getmenu.Menu().getFormattedMenu()  # Yemekhane menüsünü günceller
     logger.info("Menü güncellendi")
   except Exception as e:
@@ -270,11 +271,11 @@ def messages_to_add(info):
 """BURADAN TÜM FONKSİYONLARIN ÇALIŞMA SAATLERİNİ AYARLAYABİLİRSİNİZ (hour değişkenini 3 saat geriden almalısınız)."""
 
 def callbackRestartEveryday(context: ContextTypes.DEFAULT_TYPE):
-  timer = time(hour=5, minute=30, second=0)
+  timer = time(hour=5, minute=0, second=0)
   context.job_queue.run_daily(restartEveryDay, timer, days=(0,1,2,3,4,5,6))
-  timer2 = time(hour=7, minute=50, second=0)
+  timer2 = time(hour=8, minute=0, second=0)
   context.job_queue.run_daily(restartEveryDay, timer2, days=(0,1,2,3,4,5,6))
-  timer3 = time(hour=16, minute=20, second=0)
+  timer3 = time(hour=16, minute=0, second=0)
   context.job_queue.run_daily(restartEveryDay, timer3, days=(0,1,2,3,4,5,6))
 
 def callbackMenu(context: ContextTypes.DEFAULT_TYPE):
