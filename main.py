@@ -39,6 +39,9 @@ def log_command(func):
     logger.info(f"{func.__name__} komutu tamamlandı. Kullanıcı: {user.first_name} ({user.id})")
   return wrapper
 
+async def error_handler(update, context):
+    print(f"Error: {context.error}")
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user = update.message.from_user
   text1 = "Bursa Teknik Üniversitesi Yemekhane Telegram botuna hoşgeldiniz. /help yazarak komutlara erişebilirsiniz.!"
@@ -278,7 +281,7 @@ def callbackRestartEveryday(context: ContextTypes.DEFAULT_TYPE):
   context.job_queue.run_daily(restartEveryDay, timer3, days=(0,1,2,3,4,5,6))
 
 def callbackMenu(context: ContextTypes.DEFAULT_TYPE):
-  timer = time(hour=6, minute=0, second=0)
+  timer = time(hour=15, minute=32, second=0)
   context.job_queue.run_daily(sendDaysMenu, timer, days=(0,1,2,3,4,5,6))
 
 def callbackAnnouncement(context: ContextTypes.DEFAULT_TYPE):
@@ -301,7 +304,8 @@ def main():
   app.add_handler(CommandHandler('abonelik',abonelik))
   app.add_handler(CommandHandler('abonelikiptal',abonelikiptal))
   app.add_handler(CommandHandler('duyuru',duyuruBas))
-  restartEveryDay(app)
+  app.add_error_handler(error_handler)
+  #restartEveryDay(app)
   callbackRestartEveryday(app)
   callbackMenu(app)
   callbackAnnouncement(app)
