@@ -3,6 +3,9 @@ version: '3.8'
 services:
   telegram-bot:
     build: .
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     volumes:
       - telegram-bot-db:/app/data  # Veritabanı dosyasını volume olarak bağlama
     ports:
