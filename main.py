@@ -54,7 +54,7 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user = update.message.from_user
   print('You talk with user {} and his user ID: {} and his name is {}'.format(
     user['username'], user['id'], user['first_name']))
-  reply_text = """/menu <gün> -> girdiğiniz günün menüsünü görebilirsiniz, gün girmezseniz içinde olduğunuz günün menüsünü görebilirsiniz.\n\n/abonelik <bölüm adı> -> botumuzda abonelik başlatarak her gün saat 09.00'da botumuzdan menüyü ve yeni yüklenen sks duyurularını telegram'dan özel mesaj olarak alabilirsiniz. Eğer komutun yanına bölümünüzün adını da yazarsanız yeni eklenen bölüm duyurularını da alırsınız.(Sadece /abonelik yazarak günlük mesaj alamazsınız botun kendisine tıklayıp mesajlaşma başlatmanız gerekmektedir)\n\nGeçerli bölümler:\n\nbilgisayar, biyomuh, cevre, elektrik, endustri,fizik, gida, insaat, kimya, kimyamuh, makine,matematik, mekatronik, metalurji, polimer, denizcilik, utl (tercümanlık), ui (uluslararası ilişkiler), isletme, sosyoloji, imtb, psikoloji, ormanendustri, orman, peyzaj\n\n/duyuru <duyuru sayısı> abone olduğunuz bölümün son eklenen istediğiniz sayıda duyurusunu görebilirsiniz. En fazla 12 duyuru görebilirsiniz.\n\n/abonelikiptal -> aboneliğinizi iptal eder
+  reply_text = """/menu gün -> girdiğiniz günün menüsünü görebilirsiniz, gün girmezseniz içinde olduğunuz günün menüsünü görebilirsiniz.\n\nÖrnek: /menu 5\n\n/abonelik bölüm_adı -> Botumuzda abonelik başlatarak her gün saat 09.00'da botumuzdan menüyü ve yeni yüklenen sks duyurularını telegram'dan özel mesaj olarak alabilirsiniz. Eğer komutun yanına bölümünüzün adını da yazarsanız yeni eklenen bölüm duyurularını da alırsınız.(Sadece /abonelik yazarak günlük mesaj alamazsınız. Botun kendisine tıklayıp mesajlaşma başlatmanız gerekmektedir)\n\nÖrnek: /abonelik bilgisayar\n\nGeçerli bölümler:\n\nbilgisayar, biyomuh, cevre, elektrik, endustri,fizik, gida, insaat, kimya, kimyamuh, makine,matematik, mekatronik, metalurji, polimer, denizcilik, utl (tercümanlık), ui (uluslararası ilişkiler), isletme, sosyoloji, imtb, psikoloji, ormanendustri, orman, peyzaj\n\n/duyuru abone olduğunuz bölümün son eklenen istediğiniz sayıda duyurusunu görebilirsiniz. Abonelik açarken bölümünüzü girmediyseniz bu komutu kullanamazsınız. En fazla 12 duyuru görebilirsiniz.\n\nÖrnek: /duyuru 3\n\n/abonelikiptal -> Aboneliğinizi iptal eder.
   """
   await context.bot.send_message(chat_id=update.effective_chat.id, text = reply_text)
   info = update.message
@@ -163,7 +163,7 @@ async def duyuruBas(update: Update, context: ContextTypes.DEFAULT_TYPE):
   else:
     user_lecture = check_id[3]
     if user_lecture == None:
-      text = "Abonelik kaydınızda bölüm adınızı girmemişsiniz. Bu komuttan yararlanmak için önce aboneliğinizi iptal etmeli (/abonelikiptal) sonra aboneliğinizi açarken bölüm adınızı da girmelisiniz (/abonelik <bolum adı>)"
+      text = "Abonelik kaydınızda bölüm adınızı girmemişsiniz. Bu komuttan yararlanmak için önce aboneliğinizi iptal etmeli (/abonelikiptal) sonra aboneliğinizi açarken bölüm adınızı da girmelisiniz (/abonelik bolum_adı)"
       url = f"https://api.telegram.org/bot{Token}/sendMessage?chat_id={telegramId}&text={text}"
       requests.get(url).json()
       return
