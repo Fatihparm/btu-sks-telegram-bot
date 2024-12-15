@@ -54,7 +54,20 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user = update.message.from_user
   print('You talk with user {} and his user ID: {} and his name is {}'.format(
     user['username'], user['id'], user['first_name']))
-  reply_text = """/menu gün -> girdiğiniz günün menüsünü görebilirsiniz, gün girmezseniz içinde olduğunuz günün menüsünü görebilirsiniz.\n\nÖrnek: /menu 5\n\n/abonelik bölüm_adı -> Botumuzda abonelik başlatarak her gün saat 09.00'da botumuzdan menüyü ve yeni yüklenen sks duyurularını telegram'dan özel mesaj olarak alabilirsiniz. Eğer komutun yanına bölümünüzün adını da yazarsanız yeni eklenen bölüm duyurularını da alırsınız.(Sadece /abonelik yazarak günlük mesaj alamazsınız. Botun kendisine tıklayıp mesajlaşma başlatmanız gerekmektedir)\n\nÖrnek: /abonelik bilgisayar\n\nGeçerli bölümler:\n\nbilgisayar, biyomuh, cevre, elektrik, endustri,fizik, gida, insaat, kimya, kimyamuh, makine,matematik, mekatronik, metalurji, polimer, denizcilik, utl (tercümanlık), ui (uluslararası ilişkiler), isletme, sosyoloji, imtb, psikoloji, ormanendustri, orman, peyzaj\n\n/duyuru abone olduğunuz bölümün son eklenen istediğiniz sayıda duyurusunu görebilirsiniz. Abonelik açarken bölümünüzü girmediyseniz bu komutu kullanamazsınız. En fazla 12 duyuru görebilirsiniz.\n\nÖrnek: /duyuru 3\n\n/abonelikiptal -> Aboneliğinizi iptal eder.
+  reply_text = """/menu gün -> Girdiğiniz günün (sayı olarak) menüsünü görebilirsiniz. 
+  Gün girmezseniz içinde olduğunuz günün menüsünü görebilirsiniz.\n\nÖrnek: /menu 5\n\n
+  /abonelik bölüm_adı -> Botumuzda abonelik başlatarak her gün saat 09.00'da botumuzdan 
+  menüyü ve 10.00'da yeni yüklenen sks duyurularını telegram'dan özel mesaj olarak alabilirsiniz. 
+  Eğer komutun yanına bölümünüzün adını da yazarsanız yeni eklenen bölüm duyurularını da alırsınız.
+  Bölüm adınızı yanlış girdiyseniz /abonelikiptal komutu ile aboneliğinizi iptal edip tekrar başlatabilirsiniz.
+  (Sadece /abonelik yazarak günlük mesaj alamazsınız. Botun kendisine tıklayıp mesajlaşma başlatmanız gerekmektedir)
+  \n\nÖrnek: /abonelik bilgisayar\n\nGeçerli bölümler:\n\nbilgisayar, biyomuh, cevre, elektrik, endustri,fizik, gida,
+  insaat, kimya, kimyamuh, makine,matematik, mekatronik, metalurji, polimer, denizcilik, utl (tercümanlık), 
+  ui (uluslararası ilişkiler), isletme, sosyoloji, imtb, psikoloji, ormanendustri, orman, peyzaj\n\n
+  /duyuru abone olduğunuz bölümün son eklenen istediğiniz sayıda duyurusunu görebilirsiniz. 
+  Abonelik açarken bölümünüzü girmediyseniz bu komutu kullanamazsınız. En fazla 12 duyuru görebilirsiniz.\n\n
+  Örnek: /duyuru 3\n\n/abonelikiptal -> Aboneliğinizi iptal eder.
+
   """
   await context.bot.send_message(chat_id=update.effective_chat.id, text = reply_text)
   info = update.message
@@ -108,7 +121,10 @@ async def getMenu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         daysMenu = menuList[int(userInput)-1]
         lines = daysMenu.split("\n")
         formattedDaysMenu = f"{lines[0]} - {lines[1]}\n" + "\n".join(lines[2:])
-        daysMenuText = formattedDaysMenu
+        if "CUMARTESİ" or "PAZAR" in formattedDaysMenu: #Hafta sonu menüsü yoksa
+          daysMenuText = formattedDaysMenu+"Hafta sonu yemek hizmeti bulunmamaktadır."
+        else:
+          daysMenuText = formattedDaysMenu
         await context.bot.send_message(chat_id=update.effective_chat.id, text = daysMenuText)
   except(IndexError, ValueError):
     await context.bot.send_message(chat_id=update.effective_chat.id, text = "Lütfen geçerli bir gün giriniz.")
@@ -133,12 +149,15 @@ async def abonelik(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
       else:
         if context.args[0] not in lectures: #bölüm adı yanlış girildiyse
-          text = """Lütfen bölümünüzü giriniz.\n\nbilgisayar, biyomuh, cevre, elektrik, endustri,fizik, gida, insaat, kimya, kimyamuh, makine,matematik, mekatronik, metalurji, polimer,denizcilik, utl (tercümanlık), ui (uluslararası ilişkiler), isletme, sosyoloji, imtb, psikoloji, ormanendustri, orman, peyzaj"""
+          text = """Lütfen bölümünüzü giriniz.\n\nbilgisayar, biyomuh, cevre, elektrik, endustri,fizik, gida, 
+          insaat, kimya, kimyamuh, makine,matematik, mekatronik, metalurji, polimer,denizcilik, utl (tercümanlık), 
+          ui (uluslararası ilişkiler), isletme, sosyoloji, imtb, psikoloji, ormanendustri, orman, peyzaj"""
           url = f"https://api.telegram.org/bot{Token}/sendMessage?chat_id={telegramId}&text={text}"
           requests.get(url).json()
           return
       models.add_user(telegramId, first_name, last_name, context.args[0])
-      text = "Abonelik kaydınız oluşturuldu! Her gün Saat 09:00'da günün menüsü ve bölüm duyuru sayfanızdaki yeni duyurular sizinle paylaşılacaktır. /duyuru komutuyla son duyuruları kontrol edebilirsiniz."
+      text = """Abonelik kaydınız oluşturuldu! Her gün Saat 09:00'da günün menüsü ve bölüm duyuru sayfanızdaki yeni duyurular 
+      sizinle paylaşılacaktır. /duyuru komutuyla son duyuruları kontrol edebilirsiniz."""
       url = f"https://api.telegram.org/bot{Token}/sendMessage?chat_id={telegramId}&text={text}"
       requests.get(url).json()
     else:
@@ -163,7 +182,9 @@ async def duyuruBas(update: Update, context: ContextTypes.DEFAULT_TYPE):
   else:
     user_lecture = check_id[3]
     if user_lecture == None:
-      text = "Abonelik kaydınızda bölüm adınızı girmemişsiniz. Bu komuttan yararlanmak için önce aboneliğinizi iptal etmeli (/abonelikiptal) sonra aboneliğinizi açarken bölüm adınızı da girmelisiniz (/abonelik bolum_adı)"
+      text = """Abonelik kaydınızda bölüm adınızı girmemişsiniz. 
+      Bu komuttan yararlanmak için önce aboneliğinizi iptal etmeli (/abonelikiptal) sonra 
+      aboneliğinizi açarken bölüm adınızı da girmelisiniz (/abonelik bolum_adı)"""
       url = f"https://api.telegram.org/bot{Token}/sendMessage?chat_id={telegramId}&text={text}"
       requests.get(url).json()
       return
@@ -251,6 +272,8 @@ def sendDaysMenu(context: CallbackContext):
   daysMenu = menuList[int(userInput)-1]
   lines = daysMenu.split("\n")
   formattedDaysMenu = f"{lines[0]} - {lines[1]}\n" + "\n".join(lines[2:])
+  if "CUMARTESİ" or "PAZAR" in formattedDaysMenu:
+    exit()
   for eachPerson in range(len(kayitliKisiListesi)):
     telegramId = kayitliKisiListesi[eachPerson][0]
     try:
