@@ -132,7 +132,7 @@ class Models:
         total_count = self.cursor.fetchone()[0]
 
         # If total announcements exceed 12, delete the oldest ones
-        if total_count > 12:
+        if total_count > 11:
             num_to_delete = total_count - 12
             self.cursor.execute('''
                 DELETE FROM announcements
