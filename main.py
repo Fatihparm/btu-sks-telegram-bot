@@ -75,25 +75,35 @@ def restartEveryDay(context: CallbackContext):
     menuList = []  # Varsayılan bir boş liste döndürebilirsiniz
   try:
     newAnnDict = getannouncement.ScrapeAnnouncement().getNewAnnouncements()
-    logger.info("-----------------------Yeni Duyurular----------------------------")
-    for key, announcements in newAnnDict.items():
-      logger.info(f"Bölüm: {key}")
-      for announcement in announcements:
-        logger.info(f"Başlık: {announcement.title}, Tarih: {announcement.publish_date}, Link: {announcement.link}")
+    if len(newAnnDict) == 0:
+      logger.info("Yeni duyuru yok")
+    else:
+      logger.info("-----------------------Yeni Duyurular----------------------------")
+      for key, announcements in newAnnDict.items():
+        logger.info(f"Bölüm: {key}")
+        for announcement in announcements:
+          logger.info(f"Başlık: {announcement.title}, Tarih: {announcement.publish_date}, Link: {announcement.link}")
   except Exception as e:
     logger.info(f"Duyurular güncellenirken bir hata oluştu: {e}")
     newAnnDict = {}
   try:
-    for ann in newAnnDict["sks"]:
-      sksAnnList.append(ann) #sks duyurularını ayrıca kaydediyoruz
-  except(KeyError):
-    logger.info("Sks duyurusu yok")
-  if len(newAnnDict) == 0:
-    logger.info("Yeni duyuru yok")
+    for ann in newAnnDict.get("sks", []):
+      sksAnnList.append(ann)  # SKS duyurularını kaydediyoruz
+  except Exception as e:
+    logger.warning(f"SKS duyuruları işlenirken bir hata oluştu: {e}")
   for lecture in lectures:
-    models.delete_old_announcements(lecture) #eski duyuruları siler
-  models.delete_old_announcements("sks") #sks duyurularını siler
-  models.remove_duplicate_announcements() #aynı duyuruları (varsa) siler
+    try:
+      models.delete_old_announcements(lecture) #eski duyuruları siler
+    except Exception as e:
+      logger.error(f"{lecture} bölümündeki eski duyurular silinirken bir hata oluştu: {e}")
+  try:
+    models.delete_old_announcements("sks") #sks duyurularını siler
+  except Exception as e:
+    logger.error(f"Sks duyuruları silinirken bir hata oluştu: {e}")
+  try:
+    models.remove_duplicate_announcements() #aynı duyuruları (varsa) siler
+  except Exception as e:
+    logger.error(f"Yinelenen duyurular silinirken bir hata oluştu: {e}")
 
 
 async def getMenu(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -104,14 +114,15 @@ async def getMenu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
       userInput = context.args[0]
     if (int(userInput) > 0):
-        daysMenu = menuList[int(userInput)-1]
-        lines = daysMenu.split("\n")
-        formattedDaysMenu = f"{lines[0]} - {lines[1]}\n" + "\n".join(lines[2:])
-        if "CUMARTESİ" or "PAZAR" not in formattedDaysMenu: #Hafta sonu menüsü yoksa
-          daysMenuText = formattedDaysMenu
-        else:
-          daysMenuText = "Hafta sonu menüsü bulunmamaktadır."
-        await context.bot.send_message(chat_id=update.effective_chat.id, text = daysMenuText)
+      isWeekend = False
+      daysMenu = menuList[int(userInput)-1]
+      lines = daysMenu.split("\n")
+      formattedDaysMenu = f"{lines[0]} - {lines[1]}\n" + "\n".join(lines[2:])
+      if lines[1] == "CUMARTESİ" or lines[1] == "PAZAR":
+        daysMenuText = formattedDaysMenu + "Hafta sonu yemek hizmeti bulunmamaktadır."
+      else:
+        daysMenuText = formattedDaysMenu
+      await context.bot.send_message(chat_id=update.effective_chat.id, text = daysMenuText)
   except(IndexError, ValueError):
     await context.bot.send_message(chat_id=update.effective_chat.id, text = "Lütfen geçerli bir gün giriniz.")
   info = update.message
@@ -252,17 +263,14 @@ def sendDaysMenu(context: CallbackContext):
   userInput = datetime.now().day
   daysMenu = menuList[int(userInput)-1]
   lines = daysMenu.split("\n")
-  formattedDaysMenu = f"{lines[0]} - {lines[1]}\n" + "\n".join(lines[2:])
-  if "CUMARTESİ" or "PAZAR" in formattedDaysMenu:
-    exit()
-  for eachPerson in range(len(kayitliKisiListesi)):
-    telegramId = kayitliKisiListesi[eachPerson][0]
+  formattedDaysMenu = f"{lines[0]} - {lines[1]}\n" + "\n".join(lines[2:]) 
+  for eachPerson in kayitliKisiListesi:
+    telegramId = eachPerson[0]
     try:
       url = f"https://api.telegram.org/bot{Token}/sendMessage?chat_id={telegramId}&text={formattedDaysMenu}"
       requests.get(url).json()
     except Exception as e:
       logger.info(f"{telegramId} kullanıcısında hata oluştu: {e}")
-      eachPerson += 1
 
 def messages_to_add(info):
   user = info.from_user
@@ -284,19 +292,23 @@ def callbackRestartEveryday(context: ContextTypes.DEFAULT_TYPE):
 
 def callbackMenu(context: ContextTypes.DEFAULT_TYPE):
   timer = time(hour=6, minute=0, second=0)
-  context.job_queue.run_daily(sendDaysMenu, timer, days=(0,1,2,3,4,5,6))
+  context.job_queue.run_daily(sendDaysMenu, timer, days=(1,2,3,4,5))
 
 def callbackAnnouncement(context: ContextTypes.DEFAULT_TYPE):
   timer = time(hour=7, minute=0, second=0)
   context.job_queue.run_daily(sendAnnouncement, timer, days=(0,1,2,3,4,5,6))
+  newAnnDict.clear()
   timer2 = time(hour=16, minute=0, second=0)
   context.job_queue.run_daily(restartEveryDay, timer2, days=(0,1,2,3,4,5,6))
+  newAnnDict.clear()
 
 def callbackSksAnnouncement(context: ContextTypes.DEFAULT_TYPE):
   timer = time(hour=7, minute=0, second=0)
   context.job_queue.run_daily(sendSksAnnouncement, timer, days=(0,1,2,3,4,5,6))
+  sksAnnList.clear()
   timer2 = time(hour=16, minute=0, second=0)
   context.job_queue.run_daily(restartEveryDay, timer2, days=(0,1,2,3,4,5,6))
+  sksAnnList.clear()
 
 def main():
   app = ApplicationBuilder().token(Token).build()

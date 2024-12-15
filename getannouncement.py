@@ -38,27 +38,21 @@ class ScrapeAnnouncement:
       annList.append(self.Announcement(title.text, link, publish_date))
     return annList
    
-  def checkForNewAnnouncements(self,lecture):
-    """Verilen bölümün duyuru sayfasından yeni duyuruları çeker ve veritabanına ekler. Eklenen duyuruları döndürür."""
-    old_announcements = model.get_announcement(lecture) #veritabanındaki duyuruları alıyoruz.
+  def checkForNewAnnouncements(self, lecture):
+    old_announcements = model.get_announcement(lecture)
+    urls = {ann[3].strip().lower() for ann in old_announcements}  
     with open('lectureUrl.json') as file:
       lecture_url_dict = json.load(file)
-    new_announcements = self.getPageContent(lecture_url_dict[lecture]) #yeni duyuruları internetten çekiyoruz.
+    new_announcements = self.getPageContent(lecture_url_dict[lecture])
     new_content = []
-    urls = []
-    counter = 0 
-    for ann in old_announcements:
-      urls.append(ann[3]) #linkleri listeye ekliyoruz. Yeni duyuruları kontrol ederken bu listeyi kullanacağız.
     for new_ann in new_announcements:
-      if new_ann.link not in urls:
-        model.add_announcement(new_ann.title, lecture, new_ann.link, new_ann.publish_date) #yeni duyuruyu veritabanına ekliyoruz.
-        counter += 1
-        new_content.append(new_ann) #yeni duyuruyu listeye ekliyoruz.
-    if counter != 0: 
-      logger.info(f"{counter} {lecture.upper()} bölümü duyurusu veritabanına eklendi")
-    if len(new_content) > 3: # 3'ten fazla duyuru varsa yeni duyuruları döndürmüyoruz. Botun spam yapmasını engellemek için.
-      new_content.clear() 
-    return new_content
+      normalized_link = new_ann.link.strip().lower()
+      if normalized_link not in urls:
+        model.add_announcement(new_ann.title, lecture, new_ann.link, new_ann.publish_date)
+        new_content.append(new_ann)
+    if new_content:
+      logger.info(f"{len(new_content)} {lecture.upper()} bölümü duyurusu veritabanına eklendi")
+    return new_content[:3] # Spam kontrolü
   
   def getNewAnnouncements(self):
     """Tüm bölümlerin yeni duyurularını bir sözlükte toplar ve döndürür."""
