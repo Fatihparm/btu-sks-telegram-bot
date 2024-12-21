@@ -40,19 +40,24 @@ class ScrapeAnnouncement:
    
   def checkForNewAnnouncements(self, lecture):
     old_announcements = model.get_announcement(lecture)
-    urls = {ann[3].strip().lower() for ann in old_announcements}  
+    db_urls = {ann[3].strip().lower() for ann in old_announcements}  # Eski duyuruların URL'leri
+    db_ids = {ann[0]: ann[3].strip().lower() for ann in old_announcements}  # ID ve URL eşleşmesi
     with open('lectureUrl.json') as file:
-      lecture_url_dict = json.load(file)
+        lecture_url_dict = json.load(file)
     new_announcements = self.getPageContent(lecture_url_dict[lecture])
+    scrape_urls = {new_ann.link.strip().lower() for new_ann in new_announcements}
     new_content = []
     for new_ann in new_announcements:
       normalized_link = new_ann.link.strip().lower()
-      if normalized_link not in urls:
+      if normalized_link not in db_urls:
         model.add_announcement(new_ann.title, lecture, new_ann.link, new_ann.publish_date)
         new_content.append(new_ann)
+    for db_id, db_url in db_ids.items():
+      if db_url not in scrape_urls:
+        model.delete_announcement(db_id)
     if new_content:
       logger.info(f"{len(new_content)} {lecture.upper()} bölümü duyurusu veritabanına eklendi")
-    return new_content[:3] # Spam kontrolü
+    return new_content[:3]  # Spam kontrolü
   
   def getNewAnnouncements(self):
     """Tüm bölümlerin yeni duyurularını bir sözlükte toplar ve döndürür."""

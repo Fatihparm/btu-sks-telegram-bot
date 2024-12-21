@@ -1,15 +1,17 @@
+import logging
+import os
+from datetime import time, datetime
+import json
+
+import requests
+import dotenv
+from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, CallbackContext
+from telegram import Update
+
 import getmenu
 import scrape
 import getannouncement
 from model import Models
-from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, CallbackContext
-from telegram import Update
-import logging
-import os
-from datetime import time, datetime
-import requests
-import dotenv
-import json
 
 dotenv.load_dotenv()
 Token = os.getenv("TOKEN")
@@ -91,15 +93,6 @@ def restartEveryDay(context: CallbackContext):
       sksAnnList.append(ann)  # SKS duyurularını kaydediyoruz
   except Exception as e:
     logger.warning(f"SKS duyuruları işlenirken bir hata oluştu: {e}")
-  for lecture in lectures:
-    try:
-      models.delete_old_announcements(lecture) #eski duyuruları siler
-    except Exception as e:
-      logger.error(f"{lecture} bölümündeki eski duyurular silinirken bir hata oluştu: {e}")
-  try:
-    models.delete_old_announcements("sks") #sks duyurularını siler
-  except Exception as e:
-    logger.error(f"Sks duyuruları silinirken bir hata oluştu: {e}")
   try:
     models.remove_duplicate_announcements() #aynı duyuruları (varsa) siler
   except Exception as e:
@@ -223,40 +216,38 @@ async def abonelikiptal(update:Update, context:ContextTypes.DEFAULT_TYPE):
 
 def sendSksAnnouncement(context: CallbackContext):
   kayitliKisiListesi = models.check_all()
+  if len(sksAnnList) == 0:
+    logger.info("Yeni sks duyurusu yok")
+    return
   for eachPerson in range(len(kayitliKisiListesi)):
     telegramId = kayitliKisiListesi[eachPerson][0]
     try:
-      if len(sksAnnList) == 0:
-        logger.info("Yeni sks duyurusu yok")
-        break
       for content in sksAnnList:
         text=f"DUYURU\n{content.title}\n{content.publish_date}\n\nDaha fazla bilgi için:{content.link})"
         url = f"https://api.telegram.org/bot{Token}/sendMessage?chat_id={telegramId}&text={text}"
         requests.get(url).json()
     except Exception as e:
       logger.info(f"{telegramId} kullanıcısında hata oluştu: {e}")
-      eachPerson += 1
 
-def sendAnnouncement(context: CallbackContext):
+async def sendAnnouncement(context: CallbackContext):
   kayitliKisiListesi = models.check_all()
+  if len(newAnnDict) == 0:
+    logger.info("Yeni duyuru yok")
+    return
   for eachPerson in range(len(kayitliKisiListesi)):
     telegramId = kayitliKisiListesi[eachPerson][0]
     user_lecture = kayitliKisiListesi[eachPerson][3]
     logger.info("Bolum: " + user_lecture)
     if user_lecture == None:
       logger.info("Kullanicinin bolumu yok")
-      break
-    if len(newAnnDict) == 0:
-      logger.info("Yeni duyuru yok")
-      break
+      continue
     try:
-      for content in newAnnDict[user_lecture]:
+      for content in newAnnDict[user_lecture]: 
         text=f"DUYURU \n{content.title.upper()}\n{content.publish_date}\n\nDaha fazla bilgi için:{content.link}"
         url = f"https://api.telegram.org/bot{Token}/sendMessage?chat_id={telegramId}&text={text}"
         requests.get(url).json()
     except Exception as e:
       logger.info(f"{telegramId} kullanıcısında hata oluştu: {e}")
-      eachPerson += 1
 
 def sendDaysMenu(context: CallbackContext):
   kayitliKisiListesi = models.check_all()
@@ -285,29 +276,19 @@ def messages_to_add(info):
 def callbackRestartEveryday(context: ContextTypes.DEFAULT_TYPE):
   timer = time(hour=5, minute=0, second=0)
   context.job_queue.run_daily(restartEveryDay, timer, days=(0,1,2,3,4,5,6))
-  timer2 = time(hour=8, minute=0, second=0)
-  context.job_queue.run_daily(restartEveryDay, timer2, days=(0,1,2,3,4,5,6))
-  timer3 = time(hour=16, minute=0, second=0)
-  context.job_queue.run_daily(restartEveryDay, timer3, days=(0,1,2,3,4,5,6))
 
 def callbackMenu(context: ContextTypes.DEFAULT_TYPE):
   timer = time(hour=6, minute=0, second=0)
   context.job_queue.run_daily(sendDaysMenu, timer, days=(1,2,3,4,5))
 
 def callbackAnnouncement(context: ContextTypes.DEFAULT_TYPE):
-  timer = time(hour=7, minute=0, second=0)
+  timer = time(hour=8, minute=38, second=40)
   context.job_queue.run_daily(sendAnnouncement, timer, days=(0,1,2,3,4,5,6))
-  newAnnDict.clear()
-  timer2 = time(hour=16, minute=0, second=0)
-  context.job_queue.run_daily(restartEveryDay, timer2, days=(0,1,2,3,4,5,6))
   newAnnDict.clear()
 
 def callbackSksAnnouncement(context: ContextTypes.DEFAULT_TYPE):
   timer = time(hour=7, minute=0, second=0)
   context.job_queue.run_daily(sendSksAnnouncement, timer, days=(0,1,2,3,4,5,6))
-  sksAnnList.clear()
-  timer2 = time(hour=16, minute=0, second=0)
-  context.job_queue.run_daily(restartEveryDay, timer2, days=(0,1,2,3,4,5,6))
   sksAnnList.clear()
 
 def main():

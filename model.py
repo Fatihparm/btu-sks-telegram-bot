@@ -120,35 +120,7 @@ class Models:
       DELETE FROM announcements WHERE id = ?
       ''', (id,))
     self.db.commit()
-
-  def delete_old_announcements(self, lecture):
-    """
-    Keeps only the latest 12 announcements for a lecture.
-    Deletes older announcements based on the publish_date in ascending order.
-    """
-    try:
-        # Get total count of announcements for the given lecture
-        self.cursor.execute("SELECT COUNT(*) FROM announcements WHERE lecture = ?", (lecture,))
-        total_count = self.cursor.fetchone()[0]
-
-        # If total announcements exceed 12, delete the oldest ones
-        if total_count > 11:
-            num_to_delete = total_count - 12
-            self.cursor.execute('''
-                DELETE FROM announcements
-                WHERE id IN (
-                    SELECT id 
-                    FROM announcements
-                    WHERE lecture = ?
-                    ORDER BY publish_date ASC
-                    LIMIT ?
-                )
-            ''', (lecture, num_to_delete))
-            self.db.commit()
-            print(f"Deleted {num_to_delete} old announcements for {lecture}")
-    except Exception as e:
-        print(f"Error while deleting old announcements: {e}")
-      
+  
   def check_all_announcements(self):
     """Fetches all announcement titles and IDs"""
     self.cursor.execute('''
