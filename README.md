@@ -5,6 +5,10 @@ Bursa Teknik Üniversitesi öğrencileri için yemekhane menüsünü ve duyurula
 ## Projenin Amacı :
 Bursa Teknik Üniversitesi'nin yemekhane menüsünü pratik bir şekilde öğrenmek ve SKS (Sosyal ve Kültürel Hizmetler) duyurularını takip etmek için geliştirilmiş bir Telegram botudur.
 
+### Botu denemek için tıklayınız : 
+
+[BtuSksBot](https://t.me/BtuSksBot)
+
 ### **Başlarken**:
 
 - `git clone [repo]`
