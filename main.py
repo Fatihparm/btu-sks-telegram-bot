@@ -134,23 +134,16 @@ async def abonelik(update: Update, context: ContextTypes.DEFAULT_TYPE):
       if context.args == []:
         models.add_user(telegramId, first_name , last_name, None) #kullanıcı bölümünü girmezse sadece menu sisteminden faydalanabilir.
         text = "Abonelik kaydınız oluşturuldu! Her gün Saat 09:00'da günün menüsü sizinle paylaşılacaktır."
-        url = f"https://api.telegram.org/bot{Token}/sendMessage?chat_id={telegramId}&text={text}"
-        requests.get(url).json()
-        return
+        await context.bot.send_message(chat_id=telegramID, text = text)
       else:
         if context.args[0] not in lectures: #bölüm adı yanlış girildiyse
           text = """Lütfen bölümünüzü giriniz.\n\nbilgisayar, biyomuh, cevre, elektrik, endustri,fizik, gida, insaat, kimya, kimyamuh, makine,matematik, mekatronik, metalurji, polimer,denizcilik, utl (tercümanlık), ui (uluslararası ilişkiler), isletme, sosyoloji, imtb, psikoloji, ormanendustri, orman, peyzaj"""
-          url = f"https://api.telegram.org/bot{Token}/sendMessage?chat_id={telegramId}&text={text}"
-          requests.get(url).json()
-          return
+          await context.bot.send_message(chat_id=telegramID, text = text)
       models.add_user(telegramId, first_name, last_name, context.args[0])
       text = """Abonelik kaydınız oluşturuldu! Her gün Saat 09:00'da günün menüsü ve bölüm duyuru sayfanızdaki yeni duyurular sizinle paylaşılacaktır. /duyuru komutuyla son duyuruları kontrol edebilirsiniz."""
-      url = f"https://api.telegram.org/bot{Token}/sendMessage?chat_id={telegramId}&text={text}"
-      requests.get(url).json()
+      await context.bot.send_message(chat_id=telegramID, text = text)
     else:
-      text = "Zaten aboneliğiniz bulunmaktadır. Aboneliğinizi iptal etmek için /abonelikiptal komutunu kullanın."
-      url = f"https://api.telegram.org/bot{Token}/sendMessage?chat_id={telegramId}&text={text}"
-      requests.get(url).json()
+      await context.bot.send_message(chat_id=telegramID, text = text)
   except Exception as e:
     logger.info(f"Abonelik oluşturulurken bir hata oluştu: {e}")
   info = update.message
@@ -282,7 +275,7 @@ def callbackMenu(context: ContextTypes.DEFAULT_TYPE):
   context.job_queue.run_daily(sendDaysMenu, timer, days=(1,2,3,4,5))
 
 def callbackAnnouncement(context: ContextTypes.DEFAULT_TYPE):
-  timer = time(hour=8, minute=38, second=40)
+  timer = time(hour=7, minute=0, second=0)
   context.job_queue.run_daily(sendAnnouncement, timer, days=(0,1,2,3,4,5,6))
   newAnnDict.clear()
 
