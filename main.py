@@ -270,7 +270,7 @@ def callbackRestartEveryday(context: ContextTypes.DEFAULT_TYPE):
   context.job_queue.run_daily(restartEveryDay, timer, days=(0,1,2,3,4,5,6))
 
 def callbackMenu(context: ContextTypes.DEFAULT_TYPE):
-  timer = time(hour=12, minute=2, second=0)
+  timer = time(hour=6, minute=0, second=0)
   context.job_queue.run_daily(sendDaysMenu, timer, days=(1,2,3,4,5))
 
 def callbackAnnouncement(context: ContextTypes.DEFAULT_TYPE):
