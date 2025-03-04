@@ -91,6 +91,7 @@ def restartEveryDay(context: CallbackContext):
   try:
     for ann in newAnnDict.get("sks", []):
       sksAnnList.append(ann)  # SKS duyurularını kaydediyoruz
+    print(sksAnnList)
   except Exception as e:
     logger.warning(f"SKS duyuruları işlenirken bir hata oluştu: {e}")
   try:
@@ -127,28 +128,34 @@ async def abonelik(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user = update.message.from_user
   first_name = user["first_name"]
   last_name = user["last_name"]
-  telegramId = user["id"]
-  check_id = models.check_person(telegramId)
-  try:  
-    if check_id is None:
-      if context.args == []:
-        models.add_user(telegramId, first_name , last_name, None) #kullanıcı bölümünü girmezse sadece menu sisteminden faydalanabilir.
+  telegram_id = user["id"]  # Daha tutarlı bir isimlendirme için
+  check_id = models.check_person(telegram_id)
+  
+  try:
+    if check_id is None:  # Kullanıcı henüz abone değilse
+      if not context.args:  # Argüman yoksa (context.args boşsa)
+        models.add_user(telegram_id, first_name, last_name, None)
         text = "Abonelik kaydınız oluşturuldu! Her gün Saat 09:00'da günün menüsü sizinle paylaşılacaktır."
-        await context.bot.send_message(chat_id=telegramID, text = text)
-      else:
-        if context.args[0] not in lectures: #bölüm adı yanlış girildiyse
-          text = """Lütfen bölümünüzü giriniz.\n\nbilgisayar, biyomuh, cevre, elektrik, endustri,fizik, gida, insaat, kimya, kimyamuh, makine,matematik, mekatronik, metalurji, polimer,denizcilik, utl (tercümanlık), ui (uluslararası ilişkiler), isletme, sosyoloji, imtb, psikoloji, ormanendustri, orman, peyzaj"""
-          await context.bot.send_message(chat_id=telegramID, text = text)
-      models.add_user(telegramId, first_name, last_name, context.args[0])
-      text = """Abonelik kaydınız oluşturuldu! Her gün Saat 09:00'da günün menüsü ve bölüm duyuru sayfanızdaki yeni duyurular sizinle paylaşılacaktır. /duyuru komutuyla son duyuruları kontrol edebilirsiniz."""
-      await context.bot.send_message(chat_id=telegramID, text = text)
-    else:
-      await context.bot.send_message(chat_id=telegramID, text = text)
+        await context.bot.send_message(chat_id=telegram_id, text=text)
+      else:  # Argüman varsa
+        user_lecture = context.args[0].lower()  # Küçük harfe çevirerek kontrol et
+        if user_lecture not in lectures:  # Bölüm adı yanlışsa
+          text = """Lütfen geçerli bir bölüm giriniz.\n\nbilgisayar, biyomuh, cevre, elektrik, endustri, fizik, gida, insaat, kimya, kimyamuh, makine, matematik, mekatronik, metalurji, polimer, denizcilik, utl (tercümanlık), ui (uluslararası ilişkiler), isletme, sosyoloji, imtb, psikoloji, ormanendustri, orman, peyzaj"""
+          await context.bot.send_message(chat_id=telegram_id, text=text)
+        else:  # Bölüm doğruysa
+          models.add_user(telegram_id, first_name, last_name, user_lecture)
+          text = """Abonelik kaydınız oluşturuldu! Her gün Saat 09:00'da günün menüsü ve bölüm duyuru sayfanızdaki yeni duyurular sizinle paylaşılacaktır. /duyuru komutuyla son duyuruları kontrol edebilirsiniz."""
+          await context.bot.send_message(chat_id=telegram_id, text=text)
+    else:  # Kullanıcı zaten aboneyse
+      text = "Zaten bir aboneliğiniz bulunmaktadır. İptal etmek için /abonelikiptal komutunu kullanabilirsiniz."
+      await context.bot.send_message(chat_id=telegram_id, text=text)
   except Exception as e:
     logger.info(f"Abonelik oluşturulurken bir hata oluştu: {e}")
+    await context.bot.send_message(chat_id=telegram_id, text="Abonelik işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin.")
+  
   info = update.message
   messages_to_add(info)
-  logger.info(f"/abonelik komutu tamamlandı. Kullanıcı: {user.first_name} ({user.id}) {context.args[0]}")
+  logger.info(f"/abonelik komutu tamamlandı. Kullanıcı: {user.first_name} ({user.id}) {' '.join(context.args) if context.args else 'Bölüm belirtilmedi'}")
 
 async def duyuruBas(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user = update.message.from_user
@@ -156,15 +163,13 @@ async def duyuruBas(update: Update, context: ContextTypes.DEFAULT_TYPE):
   check_id = models.check_person(telegramId)
   if check_id is None:
     text = "Aboneliğiniz bulunmamaktadır."
-    url = f"https://api.telegram.org/bot{Token}/sendMessage?chat_id={telegramId}&text={text}"
-    requests.get(url).json()
+    await context.bot.send_message(chat_id=telegramId, text=text)
     return
   else:
     user_lecture = check_id[3]
     if user_lecture == None:
       text = """Abonelik kaydınızda bölüm adınızı girmemişsiniz. Bu komuttan yararlanmak için önce aboneliğinizi iptal etmeli (/abonelikiptal) sonra aboneliğinizi açarken bölüm adınızı da girmelisiniz (/abonelik bolum_adı)"""
-      url = f"https://api.telegram.org/bot{Token}/sendMessage?chat_id={telegramId}&text={text}"
-      requests.get(url).json()
+      await context.bot.send_message(chat_id=telegramId, text=text)
       return
     try:
       if context.args == []:
@@ -179,11 +184,10 @@ async def duyuruBas(update: Update, context: ContextTypes.DEFAULT_TYPE):
             publish_date_obj = datetime.strptime(publish_date, '%Y-%m-%d')  # strptime doğru şekilde kullanıldı
             formatted_date = publish_date_obj.strftime('%d.%m.%Y')
             text=f"DUYURU \n{formatted_date}\n{content[2]}\n\nDaha fazla bilgi için: {content[3]}"
-            url = f"https://api.telegram.org/bot{Token}/sendMessage?chat_id={telegramId}&text={text}"
-            requests.get(url).json()
+            await context.bot.send_message(chat_id=telegramId, text=text)
       else:
-        url = f"https://api.telegram.org/bot{Token}/sendMessage?chat_id={telegramId}&text=Lütfen geçerli bir sayı (1-12) giriniz."
-        requests.get(url).json()
+        text = "Lütfen geçerli bir sayı (1-12) giriniz."
+        await context.bot.send_message(chat_id=telegramId, text=text)
     except Exception as e:
       logger.info(f"Duyuru gönderilirken bir hata oluştu: {e}")
     info = update.message
@@ -196,18 +200,16 @@ async def abonelikiptal(update:Update, context:ContextTypes.DEFAULT_TYPE):
   check_id = models.check_person(telegramId)
   if check_id is None:
     text = "Aboneliğiniz bulunmamaktadır."
-    url = f"https://api.telegram.org/bot{Token}/sendMessage?chat_id={telegramId}&text={text}"
-    requests.get(url).json()
+    await context.bot.send_message(chat_id=telegramId, text=text)
   else:
     models.delete_person(telegramId)
     text = "Aboneliğiniz iptal edilmiştir."
-    url = f"https://api.telegram.org/bot{Token}/sendMessage?chat_id={telegramId}&text={text}"
-    requests.get(url).json()
+    await context.bot.send_message(chat_id=telegramId, text=text)
   info = update.message
   messages_to_add(info)
   logger.info(f"/abonelikiptal komutu tamamlandı. Kullanıcı: {user.first_name} ({user.id})")
 
-def sendSksAnnouncement(context: CallbackContext):
+async def sendSksAnnouncement(context: CallbackContext):
   kayitliKisiListesi = models.check_all()
   if len(sksAnnList) == 0:
     logger.info("Yeni sks duyurusu yok")
@@ -217,8 +219,7 @@ def sendSksAnnouncement(context: CallbackContext):
     try:
       for content in sksAnnList:
         text=f"DUYURU\n{content.title}\n{content.publish_date}\n\nDaha fazla bilgi için:{content.link})"
-        url = f"https://api.telegram.org/bot{Token}/sendMessage?chat_id={telegramId}&text={text}"
-        requests.get(url).json()
+        await context.bot.send_message(chat_id=telegramId, text=text)
     except Exception as e:
       logger.info(f"{telegramId} kullanıcısında hata oluştu: {e}")
 
@@ -237,12 +238,11 @@ async def sendAnnouncement(context: CallbackContext):
     try:
       for content in newAnnDict[user_lecture]: 
         text=f"DUYURU \n{content.title.upper()}\n{content.publish_date}\n\nDaha fazla bilgi için:{content.link}"
-        url = f"https://api.telegram.org/bot{Token}/sendMessage?chat_id={telegramId}&text={text}"
-        requests.get(url).json()
+        await context.bot.send_message(chat_id=telegramId, text=text)
     except Exception as e:
       logger.info(f"{telegramId} kullanıcısında hata oluştu: {e}")
 
-def sendDaysMenu(context: CallbackContext):
+async def sendDaysMenu(context: CallbackContext):
   kayitliKisiListesi = models.check_all()
   userInput = datetime.now().day
   daysMenu = menuList[int(userInput)-1]
@@ -251,8 +251,7 @@ def sendDaysMenu(context: CallbackContext):
   for eachPerson in kayitliKisiListesi:
     telegramId = eachPerson[0]
     try:
-      url = f"https://api.telegram.org/bot{Token}/sendMessage?chat_id={telegramId}&text={formattedDaysMenu}"
-      requests.get(url).json()
+      await context.bot.send_message(chat_id=telegramId, text = formattedDaysMenu)
     except Exception as e:
       logger.info(f"{telegramId} kullanıcısında hata oluştu: {e}")
 
@@ -271,7 +270,7 @@ def callbackRestartEveryday(context: ContextTypes.DEFAULT_TYPE):
   context.job_queue.run_daily(restartEveryDay, timer, days=(0,1,2,3,4,5,6))
 
 def callbackMenu(context: ContextTypes.DEFAULT_TYPE):
-  timer = time(hour=6, minute=0, second=0)
+  timer = time(hour=12, minute=2, second=0)
   context.job_queue.run_daily(sendDaysMenu, timer, days=(1,2,3,4,5))
 
 def callbackAnnouncement(context: ContextTypes.DEFAULT_TYPE):
